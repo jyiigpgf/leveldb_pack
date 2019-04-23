@@ -2,6 +2,9 @@
 
 import plyvel
 
+# TODO: pop tList tDict是否需要返回
+# TODO: 初始化已有数据的tList tDict报出异常
+
 db = None
 
 DICT_FORMAT_C = b'd'
@@ -165,7 +168,6 @@ class tDict(tType):
         db.put(self.name.encode('utf-8'), DICT_FORMAT_C)
         if _dict is not None:
             self._set_dict(self.name, _dict)
-        # TODO: else
 
     def _set_dict(self, key, _dict):
         tile_dict = self._dict_tile(key, _dict)
@@ -178,6 +180,8 @@ class tDict(tType):
         for k, v in _dict.items():
             if type(v) is dict:
                 rtv.update(self._dict_tile(prefix_key + '_' + k, v))
+            elif type(v) is list:
+                tList(prefix_key + '_' + k, v)
             else:
                 rtv[prefix_key + '_' + k] = self._byte_value(v)
         return rtv
@@ -186,9 +190,13 @@ class tDict(tType):
         old_value = db.get(self._wrap_key(key))
         if old_value == DICT_FORMAT_C:
             self[key].clear()
+        if old_value == LIST_FORMAT_C:
+            self[key].clear()
 
         if type(value) is dict:
-            self._set_dict(self.name + '_' + key, value)
+            tDict(self.name + '_' + key, value)
+        elif type(value) is list:
+            tList(self.name + '_' + key, value)
         else:
             key = self._wrap_key(key)
             value = self._byte_value(value)
@@ -202,6 +210,8 @@ class tDict(tType):
         else:
             if value == DICT_FORMAT_C:
                 return tDict(key)
+            elif value == LIST_FORMAT_C:
+                return tList(key)
             else:
                 return self._py_value(value)
 
@@ -219,8 +229,9 @@ class tDict(tType):
             else:
                 return d
         elif value == DICT_FORMAT_C:
-            # TODO: return dict?
             tDict(key).clear()
+        elif value == LIST_FORMAT_C:
+            tList(key).clear()
         else:
             value = self._py_value(value)
             db.delete(key)
@@ -235,16 +246,6 @@ if __name__ == '__main__':
         for key, value in db:
             wb.delete(key)
 
-    test_data = tList('TestList', ['a', {'b': 'hello'}])
-    print(type(test_data[1]))
-    test_data[0] = [1,2,3]
-    print(type(test_data[0]))
-    test_data[0] = {'a': 'world'}
-    print(type(test_data[0]))
-    test_data[0] = 'a'
-    print(test_data[0])
-    test_data.append({'c': 'world'})
-    print(type(test_data[2]))
 
 
     for key, value in db:

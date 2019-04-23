@@ -6,6 +6,9 @@ import plyvel
 import leveldb_pack
 from leveldb_pack import tDict, tList
 
+# TODO: 增加查看DB数据的测试用例
+
+
 class TestTDict(unittest.TestCase):
 
     def test_init(self):
@@ -71,6 +74,12 @@ class TestTDict(unittest.TestCase):
         # clear
         test_data.clear()
 
+        #
+        test_data = tDict('TestDict', {'c': {'c1': 1, 'c2': 2}, 'a': [1, 2, 3]})
+        test_data['b'] = [1, 2, 3]
+        self.assertEqual(test_data['a'][1], 2)
+        test_data.pop('a')
+
     def test_list(self):
         test_data = tList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
         with self.assertRaises(TypeError):
@@ -101,4 +110,16 @@ class TestTDict(unittest.TestCase):
 
         # clear
         test_data.clear()
+
+        #
+        test_data = tList('TestList', ['a', {'b': 'hello'}])
+        self.assertEqual(type(test_data[1]), tDict)
+        test_data[0] = [1, 2, 3]
+        self.assertEqual(type(test_data[0]), tList)
+        test_data[0] = {'a': 'world'}
+        self.assertEqual(type(test_data[0]), tDict)
+        test_data[0] = 'a'
+        self.assertEqual(test_data[0], 'a')
+        test_data.append({'c': 'world'})
+        self.assertEqual(test_data[2]['c'], 'world')
 
