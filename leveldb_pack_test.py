@@ -4,7 +4,7 @@ import unittest
 import plyvel
 
 import leveldb_pack
-from leveldb_pack import tDict, tList
+from leveldb_pack import TDict, TList
 
 # TODO: 增加查看DB数据的测试用例
 
@@ -25,7 +25,7 @@ class TestTDict(unittest.TestCase):
         leveldb_pack.db.close()
 
     def test_dict(self):
-        test_data = tDict('TestDict', {
+        test_data = TDict('TestDict', {
             'a': 4,
             'b': 'abc',
             'c': {
@@ -68,30 +68,30 @@ class TestTDict(unittest.TestCase):
         test_data.pop('c')
 
         # __init__
-        test_data = tDict('TestDict')
+        test_data = TDict('TestDict')
         self.assertEqual(test_data['a'], 10)
 
         # clear
         test_data.clear()
 
         #
-        test_data = tDict('TestDict', {'c': {'c1': 1, 'c2': 2}, 'a': [1, 2, 3]})
+        test_data = TDict('TestDict', {'c': {'c1': 1, 'c2': 2}, 'a': [1, 2, 3]})
         test_data['b'] = [1, 2, 3]
         self.assertEqual(test_data['a'][1], 2)
         test_data.pop('a')
 
     def test_list(self):
-        test_data = tList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
+        test_data = TList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
         with self.assertRaises(TypeError):
-            tList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
-        test_data = tList('TestList')
+            TList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
+        test_data = TList('TestList')
 
         # __len__
         self.assertEqual(len(test_data), 7)
 
         # __getitem__
         self.assertEqual(test_data[3], 'd')
-        self.assertEqual(type(test_data[6]), tList)
+        self.assertEqual(type(test_data[6]), TList)
 
         # __setitem__
         test_data[0] = 'c'
@@ -105,19 +105,19 @@ class TestTDict(unittest.TestCase):
         test_data.append('hello')
         self.assertEqual(test_data.pop(), 'hello')
         test_data.append(['h1', 'h2', 'h3', 'h4'])
-        self.assertEqual(type(test_data[7]), tList)
+        self.assertEqual(type(test_data[7]), TList)
         test_data.pop()
 
         # clear
         test_data.clear()
 
         #
-        test_data = tList('TestList', ['a', {'b': 'hello'}])
-        self.assertEqual(type(test_data[1]), tDict)
+        test_data = TList('TestList', ['a', {'b': 'hello'}])
+        self.assertEqual(type(test_data[1]), TDict)
         test_data[0] = [1, 2, 3]
-        self.assertEqual(type(test_data[0]), tList)
+        self.assertEqual(type(test_data[0]), TList)
         test_data[0] = {'a': 'world'}
-        self.assertEqual(type(test_data[0]), tDict)
+        self.assertEqual(type(test_data[0]), TDict)
         test_data[0] = 'a'
         self.assertEqual(test_data[0], 'a')
         test_data.append({'c': 'world'})

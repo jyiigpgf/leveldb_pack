@@ -13,7 +13,7 @@ INT_FORMAT_C = b'i'
 LIST_FORMAT_C = b'l'
 
 
-class tType:
+class _TType:
     def __init__(self, name):
         if type(name) is str:
             self.name = name
@@ -48,7 +48,7 @@ class tType:
                 wb.delete(key)
 
 
-class tList(tType):
+class TList(_TType):
     def __init__(self, name, _list=None):
         super().__init__(name)
         db.put(self.name.encode('utf-8'), LIST_FORMAT_C)
@@ -65,9 +65,9 @@ class tList(tType):
                 if item is None:
                     raise ValueError(item)
                 elif type(item) is list:
-                    tList(key, item)
+                    TList(key, item)
                 elif type(item) is dict:
-                    tDict(key, item)
+                    TDict(key, item)
                 else:
                     wb.put(key, self._byte_value(item))
             self._set_count(count + len(_list), wb)
@@ -83,9 +83,9 @@ class tList(tType):
                 raise IndexError(index)
             else:
                 if value == LIST_FORMAT_C:
-                    return tList(key)
+                    return TList(key)
                 elif value == DICT_FORMAT_C:
-                    return tDict(key)
+                    return TDict(key)
                 else:
                     return self._py_value(value)
         else:
@@ -98,13 +98,13 @@ class tList(tType):
                 key = self._wrap_key(str(index))
                 old_value = db.get(key)
                 if old_value == LIST_FORMAT_C:
-                    tList(key).clear()
+                    TList(key).clear()
                 elif old_value == DICT_FORMAT_C:
-                    tDict(key).clear()
+                    TDict(key).clear()
                 if type(value) is list:
-                    tList(key, value)
+                    TList(key, value)
                 elif type(value) is dict:
-                    tDict(key, value)
+                    TDict(key, value)
                 else:
                     value = self._byte_value(value)
                     db.put(key, value)
@@ -119,11 +119,11 @@ class tList(tType):
         value = db.get(last_index)
         if value == LIST_FORMAT_C:
             with db.write_batch(transaction=True) as wb:
-                tList(last_index).clear()
+                TList(last_index).clear()
                 self._set_count(count - 1, wb)
         elif value == DICT_FORMAT_C:
             with db.write_batch(transaction=True) as wb:
-                tDict(last_index).clear()
+                TDict(last_index).clear()
                 self._set_count(count - 1, wb)
         else:
             with db.write_batch(transaction=True) as wb:
@@ -136,11 +136,11 @@ class tList(tType):
         index = count
         if type(value) is list:
             with db.write_batch(transaction=True) as wb:
-                tList(self._wrap_key(str(index)), value)
+                TList(self._wrap_key(str(index)), value)
                 self._set_count(count + 1)
         elif type(value) is dict:
             with db.write_batch(transaction=True) as wb:
-                tDict(self._wrap_key(str(index)), value)
+                TDict(self._wrap_key(str(index)), value)
                 self._set_count(count + 1)
         else:
             with db.write_batch(transaction=True) as wb:
@@ -162,7 +162,7 @@ class tList(tType):
         _t.put(key.encode('utf-8'), value.to_bytes((value.bit_length() + 7) // 8 + 1, byteorder='little', signed=True))
 
 
-class tDict(tType):
+class TDict(_TType):
     def __init__(self, name, _dict=None):
         super().__init__(name)
         db.put(self.name.encode('utf-8'), DICT_FORMAT_C)
@@ -181,7 +181,7 @@ class tDict(tType):
             if type(v) is dict:
                 rtv.update(self._dict_tile(prefix_key + '_' + k, v))
             elif type(v) is list:
-                tList(prefix_key + '_' + k, v)
+                TList(prefix_key + '_' + k, v)
             else:
                 rtv[prefix_key + '_' + k] = self._byte_value(v)
         return rtv
@@ -194,9 +194,9 @@ class tDict(tType):
             self[key].clear()
 
         if type(value) is dict:
-            tDict(self.name + '_' + key, value)
+            TDict(self.name + '_' + key, value)
         elif type(value) is list:
-            tList(self.name + '_' + key, value)
+            TList(self.name + '_' + key, value)
         else:
             key = self._wrap_key(key)
             value = self._byte_value(value)
@@ -209,9 +209,9 @@ class tDict(tType):
             raise KeyError(key)
         else:
             if value == DICT_FORMAT_C:
-                return tDict(key)
+                return TDict(key)
             elif value == LIST_FORMAT_C:
-                return tList(key)
+                return TList(key)
             else:
                 return self._py_value(value)
 
@@ -229,9 +229,9 @@ class tDict(tType):
             else:
                 return d
         elif value == DICT_FORMAT_C:
-            tDict(key).clear()
+            TDict(key).clear()
         elif value == LIST_FORMAT_C:
-            tList(key).clear()
+            TList(key).clear()
         else:
             value = self._py_value(value)
             db.delete(key)
