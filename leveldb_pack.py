@@ -4,6 +4,7 @@ import plyvel
 
 # TODO: pop tList tDict是否需要返回
 # TODO: 初始化已有数据的tList tDict报出异常
+# TODO: list实现加法符号
 
 db = None
 
@@ -11,6 +12,8 @@ DICT_FORMAT_C = b'd'
 STR_FORMAT_C = b's'
 INT_FORMAT_C = b'i'
 LIST_FORMAT_C = b'l'
+BOOL_FORMAT_C = b'b'
+NONE_FORMAT_C = b'n'
 
 
 class _TType:
@@ -27,6 +30,10 @@ class _TType:
             value = value[1:].decode('utf-8')
         elif value[0] == int.from_bytes(INT_FORMAT_C, byteorder='little'):
             value = int.from_bytes(value[1:], byteorder='little', signed=True)
+        elif value[0] == int.from_bytes(BOOL_FORMAT_C, byteorder='little'):
+            value = bool.from_bytes(value[1:], byteorder='little')
+        elif value[0] == int.from_bytes(NONE_FORMAT_C, byteorder='little'):
+            value = None
         return value
 
     def _byte_value(self, value):
@@ -34,6 +41,10 @@ class _TType:
             value = STR_FORMAT_C + value.encode('utf-8')
         elif type(value) is int:
             value = INT_FORMAT_C + value.to_bytes((value.bit_length() + 7) // 8 + 1, byteorder='little', signed=True)
+        elif type(value) is bool:
+            value = BOOL_FORMAT_C + value.to_bytes(length=1, byteorder='little')
+        elif value is None:
+            value = NONE_FORMAT_C
         else:
             raise TypeError(value)
         return value
@@ -52,25 +63,8 @@ class TList(_TType):
     def __init__(self, name, _list=None):
         super().__init__(name)
         db.put(self.name.encode('utf-8'), LIST_FORMAT_C)
-        if _list is None:
-            return
-        count = self._get_count()
-        if count != 0 and _list is not None:
-            raise TypeError(_list)
-        index = count - 1
-        with db.write_batch(transaction=True) as wb:
-            for item in _list:
-                index += 1
-                key = self._wrap_key(str(index))
-                if item is None:
-                    raise ValueError(item)
-                elif type(item) is list:
-                    TList(key, item)
-                elif type(item) is dict:
-                    TDict(key, item)
-                else:
-                    wb.put(key, self._byte_value(item))
-            self._set_count(count + len(_list), wb)
+        if _list is not None:
+            self.extend(_list)
 
     def __len__(self):
         return self._get_count()
@@ -161,6 +155,23 @@ class TList(_TType):
             _t = wb
         _t.put(key.encode('utf-8'), value.to_bytes((value.bit_length() + 7) // 8 + 1, byteorder='little', signed=True))
 
+    def extend(self, _list):
+        count = self._get_count()
+        index = count - 1
+        with db.write_batch(transaction=True) as wb:
+            for item in _list:
+                index += 1
+                key = self._wrap_key(str(index))
+                if item is None:
+                    raise ValueError(item)
+                elif type(item) is list:
+                    TList(key, item)
+                elif type(item) is dict:
+                    TDict(key, item)
+                else:
+                    wb.put(key, self._byte_value(item))
+            self._set_count(count + len(_list), wb)
+
 
 class TDict(_TType):
     def __init__(self, name, _dict=None):
@@ -237,6 +248,20 @@ class TDict(_TType):
             db.delete(key)
             return value
 
+    def __iter__(self):
+        self.db_iter = db.iterator(prefix=(self.name + '_').encode('utf-8'), reverse=True)
+        self.db_iter.seek_to_start()
+        return self
+
+    def __next__(self):
+        item = self.db_iter.prev()
+        key = item[0].decode('utf-8')
+        value = item[1]
+        if key.find('_', len(self.name) + 1) == -1:
+            return key[len(self.name) + 1:]
+        else:
+            return self.__next__()
+
 
 if __name__ == '__main__':
 
@@ -246,6 +271,24 @@ if __name__ == '__main__':
         for key, value in db:
             wb.delete(key)
 
+    # test_data = TList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
+    # test_data.extend([1, 2])
+    #
+    # test_data.append(True)
+    # print(test_data.pop())
+    # test_data.append(False)
+    #
+    # test_data.append(None)
+    # print(test_data.pop())
+    # test_data.append(None)
+
+    test_data = TDict('TestDict', {'a': 0, 'b': 1, 'c': [1, 2], 'd': {'d1': 0, 'd2': 1}})
+    for key in test_data:
+        print(key)
+        print(test_data[key])
+    for key in test_data['d']:
+        print(key)
+        print(test_data['d'][key])
 
 
     for key, value in db:
