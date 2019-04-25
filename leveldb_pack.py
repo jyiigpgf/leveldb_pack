@@ -2,10 +2,14 @@
 
 import plyvel
 
-# TODO: pop tList tDict是否需要返回
-# TODO: 初始化已有数据的tList tDict报出异常
+# TODO: pop TList TDict是否需要返回
+# TODO: 初始化已有数据的TList TDict报出异常
 # TODO: list实现加法符号
 # TODO: 检查递归调用
+# TODO: TDict key支持非字符串类型
+# TODO: TList 实现反向index
+# TODO: TList pop接口，支持传入index
+# TODO: TList 支持__delitem__
 
 db = None
 
@@ -232,6 +236,9 @@ class TDict(_TType):
         value = db.get(key)
         return value is not None
 
+    def __delitem__(self, key):
+        self.pop(key)
+
     def pop(self, key, d=None):
         key = self._wrap_key(key)
         value = db.get(key)
@@ -278,6 +285,7 @@ if __name__ == '__main__':
         for key, value in db:
             wb.delete(key)
 
+    # 0
     # test_data = TList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
     # test_data.extend([1, 2])
     #
@@ -289,13 +297,22 @@ if __name__ == '__main__':
     # print(test_data.pop())
     # test_data.append(None)
 
-    test_data = TDict('TestDict', {'a': 0, 'b': 1, 'c': [1, 2], 'd': {'d1': 0, 'd2': 1}})
-    for key in test_data:
-        print(key)
-        print(test_data[key])
-    for key in test_data['d']:
-        print(key)
-        print(test_data['d'][key])
+    # 1
+    # test_data = TDict('TestDict', {'a': 0, 'b': 1, 'c': [1, 2], 'd': {'d1': 0, 'd2': 1}})
+    # for key in test_data:
+    #     print(key)
+    #     print(test_data[key])
+    # for key in test_data['d']:
+    #     print(key)
+    #     print(test_data['d'][key])
+
+    # 2
+    test_data = TDict('TestDict')
+    test_data['a'] = 'hello'
+    test_data['b'] = 'world'
+    test_data['a'] = ''
+    test_data['c'] = {'c1': 0, 'c2': 1}
+
 
 
     for key, value in db:
