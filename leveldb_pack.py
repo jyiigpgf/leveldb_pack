@@ -5,6 +5,7 @@ import plyvel
 # TODO: pop tList tDict是否需要返回
 # TODO: 初始化已有数据的tList tDict报出异常
 # TODO: list实现加法符号
+# TODO: 检查递归调用
 
 db = None
 
@@ -257,10 +258,16 @@ class TDict(_TType):
         item = self.db_iter.prev()
         key = item[0].decode('utf-8')
         value = item[1]
-        if key.find('_', len(self.name) + 1) == -1:
-            return key[len(self.name) + 1:]
-        else:
-            return self.__next__()
+        # RecursionError: maximum recursion depth exceeded while calling a Python object
+        # if key.find('_', len(self.name) + 1) == -1:
+        #     return key[len(self.name) + 1:]
+        # else:
+        #     return self.__next__()
+        while key.find('_', len(self.name) + 1) != -1:
+            item = self.db_iter.prev()
+            key = item[0].decode('utf-8')
+            value = item[1]
+        return key[len(self.name) + 1:]
 
 
 if __name__ == '__main__':

@@ -40,8 +40,7 @@ class TestTDict(unittest.TestCase):
         # __setitem__
         test_data['a'] = 10
         self.assertEqual(test_data['a'], 10)
-        with self.assertRaises(TypeError):
-            test_data['a'] = None
+        test_data['a'] = None
         test_data['g'] = {
             "d2": "hello world"
         }
@@ -51,7 +50,7 @@ class TestTDict(unittest.TestCase):
             test_data['g']['d2']
 
         # __getitem__
-        self.assertEqual(test_data['a'], 10)
+        self.assertEqual(test_data['a'], None)
         self.assertEqual(test_data['c']['c2'], 'd')
         test_data['c']['c3']['d1'] = 'hello world'
         self.assertEqual(test_data['c']['c3']['d1'], 'hello world')
@@ -69,7 +68,7 @@ class TestTDict(unittest.TestCase):
 
         # __init__
         test_data = TDict('TestDict')
-        self.assertEqual(test_data['a'], 10)
+        self.assertEqual(test_data['a'], None)
 
         # clear
         test_data.clear()
@@ -82,8 +81,8 @@ class TestTDict(unittest.TestCase):
 
     def test_list(self):
         test_data = TList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
-        with self.assertRaises(TypeError):
-            TList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
+        # with self.assertRaises(TypeError):
+        #     TList('TestList', ['a', 'b', 'c', 'd', 'e', 'f', ['g1', 'g2']])
         test_data = TList('TestList')
 
         # __len__
