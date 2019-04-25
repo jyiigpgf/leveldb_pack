@@ -7,4 +7,5 @@
 # TODO: TDict key支持非字符串类型
 # TODO: TList 实现反向index
 # TODO: TList pop接口，支持传入index
-# TODO: TList 支持__delitem__
+# TODO: TList 支持__delitem
+# TODO: 自定义分隔符
