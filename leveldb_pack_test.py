@@ -42,7 +42,7 @@ class TestTDict(unittest.TestCase):
         self.assertEqual(test_data['a'], 10)
         test_data['a'] = None
         test_data['g'] = {
-            "d2": "hello world"
+            'd2': 'hello world'
         }
         self.assertEqual(test_data['g']['d2'], 'hello world')
         test_data['g'] = 'hello'

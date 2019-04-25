@@ -30,6 +30,14 @@ class _TType:
         else:
             raise TypeError(name)
 
+    def _to_py_value(self, db_key, db_value):
+        if db_value == DICT_FORMAT_C:
+            return TDict(db_key)
+        elif db_value == LIST_FORMAT_C:
+            return TList(db_key)
+        else:
+            return self._py_value(db_value)
+
     def _py_value(self, value):
         if value[0] == int.from_bytes(STR_FORMAT_C, byteorder='little'):
             value = value[1:].decode('utf-8')
@@ -76,17 +84,12 @@ class TList(_TType):
 
     def __getitem__(self, index):
         if type(index) is int:
-            key = self._wrap_key(str(index))
-            value = db.get(key)
-            if value is None:
+            db_key = self._wrap_key(str(index))
+            db_value = db.get(db_key)
+            if db_value is None:
                 raise IndexError(index)
             else:
-                if value == LIST_FORMAT_C:
-                    return TList(key)
-                elif value == DICT_FORMAT_C:
-                    return TDict(key)
-                else:
-                    return self._py_value(value)
+                return self._to_py_value(db_key, db_value)
         else:
             raise TypeError(index)
 
@@ -181,6 +184,7 @@ class TList(_TType):
 class TDict(_TType):
     def __init__(self, name, _dict=None):
         super().__init__(name)
+        print('name:', name)
         db.put(self.name.encode('utf-8'), DICT_FORMAT_C)
         if _dict is not None:
             self._set_dict(self.name, _dict)
@@ -211,25 +215,23 @@ class TDict(_TType):
 
         if type(value) is dict:
             TDict(self.name + '_' + key, value)
+            print(self.name + '_' + key)
         elif type(value) is list:
             TList(self.name + '_' + key, value)
+            print(self.name + '_' + key)
         else:
             key = self._wrap_key(key)
             value = self._byte_value(value)
             db.put(key, value)
 
     def __getitem__(self, key):
-        key = self._wrap_key(key)
-        value = db.get(key)
-        if value is None:
+        db_key = self._wrap_key(key)
+        print('db_key:', db_key, ' self.name:', self.name)
+        db_value = db.get(db_key)
+        if db_value is None:
             raise KeyError(key)
         else:
-            if value == DICT_FORMAT_C:
-                return TDict(key)
-            elif value == LIST_FORMAT_C:
-                return TList(key)
-            else:
-                return self._py_value(value)
+            return self._to_py_value(db_key, db_value)
 
     def __contains__(self, key):
         key = self._wrap_key(key)
@@ -307,11 +309,18 @@ if __name__ == '__main__':
     #     print(test_data['d'][key])
 
     # 2
-    test_data = TDict('TestDict')
-    test_data['a'] = 'hello'
-    test_data['b'] = 'world'
-    test_data['a'] = ''
-    test_data['c'] = {'c1': 0, 'c2': 1}
+    # test_data = TDict('TestDict')
+    # test_data['a'] = 'hello'
+    # test_data['b'] = 'world'
+    # test_data['a'] = ''
+    # test_data['c'] = {'c1': 0, 'c2': 1}
+
+    # 3
+    # test_data = TList('TestList', [1, 2, 3, 4, 5, [61, 62, 63]])
+    # for item in test_data:
+    #     print(item)
+
+
 
 
 
