@@ -103,6 +103,7 @@ class TList(_TType):
                     TList(key).clear()
                 elif old_value == DICT_FORMAT_C:
                     TDict(key).clear()
+
                 if type(value) is list:
                     TList(key, value)
                 elif type(value) is dict:
@@ -184,7 +185,6 @@ class TList(_TType):
 class TDict(_TType):
     def __init__(self, name, _dict=None):
         super().__init__(name)
-        print('name:', name)
         db.put(self.name.encode('utf-8'), DICT_FORMAT_C)
         if _dict is not None:
             self._set_dict(self.name, _dict)
@@ -215,10 +215,8 @@ class TDict(_TType):
 
         if type(value) is dict:
             TDict(self.name + '_' + key, value)
-            print(self.name + '_' + key)
         elif type(value) is list:
             TList(self.name + '_' + key, value)
-            print(self.name + '_' + key)
         else:
             key = self._wrap_key(key)
             value = self._byte_value(value)
@@ -226,7 +224,6 @@ class TDict(_TType):
 
     def __getitem__(self, key):
         db_key = self._wrap_key(key)
-        print('db_key:', db_key, ' self.name:', self.name)
         db_value = db.get(db_key)
         if db_value is None:
             raise KeyError(key)
