@@ -9,3 +9,4 @@
 # TODO: TList pop接口，支持传入index
 # TODO: TList 支持__delitem
 # TODO: 自定义分隔符
+# TODO: 实现__repr__ __str__
