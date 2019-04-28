@@ -12,6 +12,7 @@ from leveldb_pack import TDict, TList
 class TestTDict(unittest.TestCase):
 
     def test_init(self):
+
         leveldb_pack.db = plyvel.DB('./testleveldb/', create_if_missing=True)
 
         with leveldb_pack.db.write_batch(transaction=True) as wb:

@@ -2,7 +2,7 @@
 
 import plyvel
 
-db = None
+import leveldb_pack
 
 DICT_FORMAT_C = b'd'
 STR_FORMAT_C = b's'
@@ -57,16 +57,16 @@ class _TType:
         return (self.name + '_' + key).encode('utf-8')
 
     def clear(self):
-        with db.write_batch(transaction=True) as wb:
+        with leveldb_pack.db.write_batch(transaction=True) as wb:
             wb.delete(self.name.encode('utf-8'))
-            for key, value in db.iterator(prefix=(self.name + '_').encode('utf-8')):
+            for key, value in leveldb_pack.db.iterator(prefix=(self.name + '_').encode('utf-8')):
                 wb.delete(key)
 
 
 class TList(_TType):
     def __init__(self, name, _list=None):
         super().__init__(name)
-        db.put(self.name.encode('utf-8'), LIST_FORMAT_C)
+        leveldb_pack.db.put(self.name.encode('utf-8'), LIST_FORMAT_C)
         if _list is not None:
             self.extend(_list)
 
@@ -76,7 +76,7 @@ class TList(_TType):
     def __getitem__(self, index):
         if type(index) is int:
             db_key = self._wrap_key(str(index))
-            db_value = db.get(db_key)
+            db_value = leveldb_pack.db.get(db_key)
             if db_value is None:
                 raise IndexError(index)
             else:
@@ -89,7 +89,7 @@ class TList(_TType):
         if type(index) is int:
             if index < count:
                 key = self._wrap_key(str(index))
-                old_value = db.get(key)
+                old_value = leveldb_pack.db.get(key)
                 if old_value == LIST_FORMAT_C:
                     TList(key).clear()
                 elif old_value == DICT_FORMAT_C:
@@ -101,7 +101,7 @@ class TList(_TType):
                     TDict(key, value)
                 else:
                     value = self._byte_value(value)
-                    db.put(key, value)
+                    leveldb_pack.db.put(key, value)
             else:
                 raise IndexError(index)
         else:
@@ -110,17 +110,17 @@ class TList(_TType):
     def pop(self):
         count = self._get_count()
         last_index = self._wrap_key(str(count - 1))
-        value = db.get(last_index)
+        value = leveldb_pack.db.get(last_index)
         if value == LIST_FORMAT_C:
-            with db.write_batch(transaction=True) as wb:
+            with leveldb_pack.db.write_batch(transaction=True) as wb:
                 TList(last_index).clear()
                 self._set_count(count - 1, wb)
         elif value == DICT_FORMAT_C:
-            with db.write_batch(transaction=True) as wb:
+            with leveldb_pack.db.write_batch(transaction=True) as wb:
                 TDict(last_index).clear()
                 self._set_count(count - 1, wb)
         else:
-            with db.write_batch(transaction=True) as wb:
+            with leveldb_pack.db.write_batch(transaction=True) as wb:
                 wb.delete(self._wrap_key(str(count - 1)))
                 self._set_count(count - 1, wb)
             return self._py_value(value)
@@ -129,28 +129,28 @@ class TList(_TType):
         count = self._get_count()
         index = count
         if type(value) is list:
-            with db.write_batch(transaction=True) as wb:
+            with leveldb_pack.db.write_batch(transaction=True) as wb:
                 TList(self._wrap_key(str(index)), value)
                 self._set_count(count + 1)
         elif type(value) is dict:
-            with db.write_batch(transaction=True) as wb:
+            with leveldb_pack.db.write_batch(transaction=True) as wb:
                 TDict(self._wrap_key(str(index)), value)
                 self._set_count(count + 1)
         else:
-            with db.write_batch(transaction=True) as wb:
+            with leveldb_pack.db.write_batch(transaction=True) as wb:
                 wb.put(self._wrap_key(str(index)), self._byte_value(value))
                 self._set_count(count + 1)
 
     def _get_count(self):
         key = self.name + '_' + 'count'
-        value = db.get(key.encode('utf-8'))
+        value = leveldb_pack.db.get(key.encode('utf-8'))
         if value is None:
             return 0
         return int.from_bytes(value, byteorder='little', signed=True)
 
     def _set_count(self, value, wb=None):
         key = self.name + '_' + 'count'
-        _t = db
+        _t = leveldb_pack.db
         if wb is not None:
             _t = wb
         _t.put(key.encode('utf-8'), value.to_bytes((value.bit_length() + 7) // 8 + 1, byteorder='little', signed=True))
@@ -158,7 +158,7 @@ class TList(_TType):
     def extend(self, _list):
         count = self._get_count()
         index = count - 1
-        with db.write_batch(transaction=True) as wb:
+        with leveldb_pack.db.write_batch(transaction=True) as wb:
             for item in _list:
                 index += 1
                 key = self._wrap_key(str(index))
@@ -176,13 +176,13 @@ class TList(_TType):
 class TDict(_TType):
     def __init__(self, name, _dict=None):
         super().__init__(name)
-        db.put(self.name.encode('utf-8'), DICT_FORMAT_C)
+        leveldb_pack.db.put(self.name.encode('utf-8'), DICT_FORMAT_C)
         if _dict is not None:
             self._set_dict(self.name, _dict)
 
     def _set_dict(self, key, _dict):
         tile_dict = self._dict_tile(key, _dict)
-        with db.write_batch(transaction=True) as wb:
+        with leveldb_pack.db.write_batch(transaction=True) as wb:
             for k, v in tile_dict.items():
                 wb.put(k.encode('utf-8'), v)
 
@@ -198,7 +198,7 @@ class TDict(_TType):
         return rtv
 
     def __setitem__(self, key, value):
-        old_value = db.get(self._wrap_key(key))
+        old_value = leveldb_pack.db.get(self._wrap_key(key))
         if old_value == DICT_FORMAT_C:
             self[key].clear()
         if old_value == LIST_FORMAT_C:
@@ -211,11 +211,11 @@ class TDict(_TType):
         else:
             key = self._wrap_key(key)
             value = self._byte_value(value)
-            db.put(key, value)
+            leveldb_pack.db.put(key, value)
 
     def __getitem__(self, key):
         db_key = self._wrap_key(key)
-        db_value = db.get(db_key)
+        db_value = leveldb_pack.db.get(db_key)
         if db_value is None:
             raise KeyError(key)
         else:
@@ -223,7 +223,7 @@ class TDict(_TType):
 
     def __contains__(self, key):
         key = self._wrap_key(key)
-        value = db.get(key)
+        value = leveldb_pack.db.get(key)
         return value is not None
 
     def __delitem__(self, key):
@@ -231,7 +231,7 @@ class TDict(_TType):
 
     def pop(self, key, d=None):
         key = self._wrap_key(key)
-        value = db.get(key)
+        value = leveldb_pack.db.get(key)
         if value is None:
             if d is None:
                 raise KeyError(key)
@@ -243,11 +243,11 @@ class TDict(_TType):
             TList(key).clear()
         else:
             value = self._py_value(value)
-            db.delete(key)
+            leveldb_pack.db.delete(key)
             return value
 
     def __iter__(self):
-        self.db_iter = db.iterator(prefix=(self.name + '_').encode('utf-8'), reverse=True)
+        self.db_iter = leveldb_pack.db.iterator(prefix=(self.name + '_').encode('utf-8'), reverse=True)
         self.db_iter.seek_to_start()
         return self
 
@@ -269,10 +269,10 @@ class TDict(_TType):
 
 if __name__ == '__main__':
 
-    db = plyvel.DB('./testleveldb/', create_if_missing=True)
+    leveldb_pack.db = plyvel.DB('./testleveldb/', create_if_missing=True)
 
-    with db.write_batch(transaction=True) as wb:
-        for key, value in db:
+    with leveldb_pack.db.write_batch(transaction=True) as wb:
+        for key, value in leveldb_pack.db:
             wb.delete(key)
 
     # 0
@@ -304,15 +304,15 @@ if __name__ == '__main__':
     # test_data['c'] = {'c1': 0, 'c2': 1}
 
     # 3
-    # test_data = TList('TestList', [1, 2, 3, 4, 5, [61, 62, 63]])
-    # for item in test_data:
-    #     print(item)
+    test_data = TList('TestList', [1, 2, 3, 4, 5, [61, 62, 63]])
+    for item in test_data:
+        print(item)
 
 
 
 
 
-    for key, value in db:
+    for key, value in leveldb_pack.db:
         print(key, value)
 
-    db.close()
+    leveldb_pack.db.close()
